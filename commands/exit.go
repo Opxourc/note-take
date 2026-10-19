@@ -5,8 +5,8 @@ import (
 	"os"
 )
 
-// Exit ends the program.
-func Exit() {
+// RunExit runs the 'exit' command, allowing the program to exit.
+func RunExit() {
 	fmt.Print("\nExitting Note-Take CLI.")
 	os.Exit(0)
 }
