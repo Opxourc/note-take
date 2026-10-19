@@ -6,64 +6,58 @@ import (
 	"os"
 	"path/filepath"
 
-	"github.com/Opxourc/note-take/config"
 	"github.com/Opxourc/note-take/utility"
 )
 
-var flags = map[string]string{
-	"File": "f",
-	"All":  "a",
-}
+const (
+	listFileFlag = "f"
+	listAllFlag  = "a"
+)
 
-// RunList runs the List command.
+// RunList runs the 'list' command by either listing all files or notes from a file.
 func RunList(s *bufio.Scanner) {
 	flag := utility.GetFlag(s)
-	found := false
+	args := utility.GetArguements(s) // Arguements are dependent on the flag
 
-	// Check if the flag is valid
-	for _, f := range flags {
-		if flag == f {
-			found = true
-			break
-		}
-	}
-
-	if !found {
-		fmt.Println("Error: provided flag is invalid. Use 'help' to get flags for this command.")
+	notesDir, err := utility.CreateNotesDir()
+	if err != nil {
+		fmt.Printf("Error creating notes directory: %v\n", err)
 		return
 	}
 
-	args := utility.GetArguements(s) // Arguements are dependent on the flag
-
 	switch flag {
-	case flags["File"]:
-		listFile(args)
-	case flags["All"]:
-		listAll()
-
+	case listFileFlag:
+		listFile(args, notesDir)
+	case listAllFlag:
+		listAll(notesDir)
+	default:
+		fmt.Println("Error: invalid flag provided.")
 	}
 }
 
 // listFile prints all notes that are in a file.
-func listFile(args []string) {
+func listFile(args []string, notesDir string) {
 	if len(args) == 0 {
-		fmt.Println("Error: invalid file name provided.")
+		fmt.Println("Error: no arguements were provided.")
 		return
 	}
 
+	// First arguement should be the name that's provided
 	fileName := args[0]
 	if fileName == "" {
 		fmt.Println("Error: invalid file name provided.")
 		return
 	}
 
-	file, err := os.Open(filepath.Join(config.NoteFolderPath, fileName))
+	// Find and open the file by joining paths
+	file, err := os.Open(filepath.Join(notesDir, fileName))
 	if err != nil {
 		fmt.Printf("Error opening file %q: %v\n", fileName, err)
 		return
 	}
 	defer file.Close()
 
+	// Scan every line of text in the text
 	scanner := bufio.NewScanner(file)
 	lineNumber := 1
 	for scanner.Scan() {
@@ -78,13 +72,15 @@ func listFile(args []string) {
 }
 
 // listAll prints all file names that exist in the notes folder.
-func listAll() {
-	entries, err := os.ReadDir(config.NoteFolderPath)
+func listAll(notesDir string) {
+	// Read all files contained in the directory
+	entries, err := os.ReadDir(notesDir)
 	if err != nil {
-		fmt.Printf("Error reading notes directory: %v\n", err)
+		fmt.Printf("Unable to read notes folder: %s", err)
 		return
 	}
 
+	// Print the names of all files
 	for _, entry := range entries {
 		if !entry.IsDir() {
 			fmt.Println(entry.Name())
