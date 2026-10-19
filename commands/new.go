@@ -9,116 +9,79 @@ import (
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/Opxourc/note-take/config"
+	"github.com/Opxourc/note-take/utility"
 )
 
 const (
-	fileFlag    = "f"
-	noteFlag    = "n"
-	notesFolder = "notes"
+	fileFlag = "f"
+	noteFlag = "n"
 )
 
-// New finds a flag in the supplied input or keeps reading lines until it finds one.
-// The rest of that line contains either a filename or a filename followed by a quoted note.
-func New(input string, scanner *bufio.Scanner) {
-	for {
-		flag, args, found := flagAndArgs(input)
-		if found {
-			if flag != fileFlag && flag != noteFlag {
-				fmt.Printf("Error: Unknown flag -%s (use -%s or -%s)\n\n", flag, fileFlag, noteFlag)
+// New reads a flag and its arguments from the supplied scanner.
+func RunNew(s *bufio.Scanner) {
+	for s != nil && s.Scan() {
+		line := s.Text()
+		flagScanner := bufio.NewScanner(strings.NewReader(line))
+		flag := utility.GetFlag(flagScanner)
+		if flag == "" {
+			continue
+		}
+
+		if flag != fileFlag && flag != noteFlag {
+			fmt.Printf("Error: Unknown flag -%s (use -%s or -%s)\n\n", flag, fileFlag, noteFlag)
+			return
+		}
+
+		flagStart := strings.Index(line, "-"+flag)
+		argsScanner := bufio.NewScanner(strings.NewReader(line[flagStart+len(flag)+1:]))
+		args := utility.GetArguements(argsScanner)
+		if len(args) == 0 {
+			fmt.Println("Error: expected a filename")
+			return
+		}
+
+		filename := args[0]
+		if strings.ContainsAny(filename, "\\/") || filename == "." || filename == ".." {
+			fmt.Println("Error: filename must be a single name")
+			return
+		}
+
+		switch flag {
+		case fileFlag:
+			if len(args) != 1 {
+				fmt.Println("Error: -f accepts only a filename")
+				return
+			}
+			newFile(filename)
+		case noteFlag:
+			remainder := strings.Join(args[1:], " ")
+			if len(remainder) < 2 || remainder[0] != '"' || remainder[len(remainder)-1] != '"' {
+				fmt.Println("Error: -n requires a note string in double quotes")
 				return
 			}
 
-			filename, note, err := parseNewArgs(args, flag == noteFlag)
+			note, err := strconv.Unquote(remainder)
 			if err != nil {
-				fmt.Printf("Error: %v\n\n", err)
+				fmt.Printf("Error: invalid quoted note: %v\n", err)
 				return
 			}
-
-			// Flag determines whether to create a file or a note
-			switch flag {
-			case fileFlag:
-				newFile(filename)
-			case noteFlag:
-				newNote(filename, note)
-			}
-
-			return
+			newNote(filename, note)
 		}
-
-		if scanner == nil || !scanner.Scan() {
-			if scanner != nil && scanner.Err() != nil {
-				fmt.Printf("Error: failed to read input: %v\n", scanner.Err())
-			} else {
-				fmt.Println("Error: expected a flag (-f or -n)")
-			}
-			return
-		}
-		input = scanner.Text()
-	}
-}
-
-// flagAndArgs returns the first dash-prefixed token and everything after it.
-func flagAndArgs(input string) (flag, args string, found bool) {
-	fields := strings.Fields(input)
-	position := 0
-
-	for _, field := range fields {
-		offset := strings.Index(input[position:], field)
-		if offset < 0 {
-			return "", "", false
-		}
-
-		start := position + offset
-		position = start + len(field)
-		if len(field) > 1 && field[0] == '-' {
-			return field[1:], strings.TrimSpace(input[position:]), true
-		}
+		return
 	}
 
-	return "", "", false
-}
-
-// parseNewArgs returns the filename and note from the given args.
-func parseNewArgs(args string, wantsNote bool) (filename, note string, err error) {
-	args = strings.TrimSpace(args)
-	if args == "" {
-		return "", "", fmt.Errorf("expected a filename")
+	if s != nil && s.Err() != nil {
+		fmt.Printf("Error: failed to read input: %v\n", s.Err())
+	} else {
+		fmt.Println("Error: expected a flag (-f or -n)")
 	}
-
-	fields := strings.Fields(args)
-	if len(fields) == 0 {
-		return "", "", fmt.Errorf("expected a filename")
-	}
-
-	filename = fields[0]
-	remainder := strings.TrimSpace(args[len(filename):])
-	if strings.ContainsAny(filename, "\\/") || filename == "." || filename == ".." {
-		return "", "", fmt.Errorf("filename must be a single name")
-	}
-
-	if !wantsNote {
-		if strings.TrimSpace(remainder) != "" {
-			return "", "", fmt.Errorf("-f accepts only a filename")
-		}
-		return filename, "", nil
-	}
-
-	remainder = strings.TrimSpace(remainder)
-	if len(remainder) < 2 || remainder[0] != '"' || remainder[len(remainder)-1] != '"' {
-		return "", "", fmt.Errorf("-n requires a note string in double quotes")
-	}
-
-	note, err = strconv.Unquote(remainder)
-	if err != nil {
-		return "", "", fmt.Errorf("invalid quoted note: %w", err)
-	}
-
-	return filename, note, nil
 }
 
 // createPath returns the filesystem path for a given filename.
 func createPath(filename string) string {
-	return filepath.Join(notesFolder, filename) // Join the notes directory and filename into a filesystem path
+	return filepath.Join(config.NoteFolderPath, filename)
 }
 
 // newNote creates a new note file with the given filename and note.
@@ -154,7 +117,7 @@ func newNote(filename, note string) {
 
 // newFile creates a new file with the given filename.
 func newFile(filename string) {
-	directory := filepath.Clean(notesFolder)
+	directory := filepath.Clean(config.NoteFolderPath)
 	if err := os.MkdirAll(directory, 0o755); err != nil {
 		fmt.Printf("Error creating notes directory: %v\n", err)
 		return
