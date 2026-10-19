@@ -9,12 +9,19 @@ import (
 	"github.com/Opxourc/note-take/commands"
 )
 
+const (
+	helpCommand = "help"
+	exitCommand = "exit"
+	listCommand = "list"
+	newCommand  = "new"
+)
+
 func main() {
-	title()
+	fmt.Println("Note-Take CLI")
+	fmt.Print("Type 'help' to see commands.\n\n")
 	scanner := bufio.NewScanner(os.Stdin) // Want to scan from a terminal
 
-	exit := false
-	for !exit {
+	for {
 		var input string
 		if scanner.Scan() {
 			input = scanner.Text()
@@ -24,17 +31,23 @@ func main() {
 		}
 
 		// Check the first token before the first space
-		first := input[:strings.Index(input, " ")]
+		com := strings.Fields(input)
+		if len(com) == 0 {
+			continue
+		}
+		first := com[0]
+
 		switch first {
-		case "help":
-			commands.Help()
+		case helpCommand:
+			commands.RunHelp()
+		case exitCommand:
+			commands.RunExit()
+		case listCommand:
+			commands.RunList(scanner)
+		case newCommand:
+			commands.RunNew(scanner)
+		default:
+			fmt.Printf("No command called %s", first)
 		}
 	}
-}
-
-func title() {
-	fmt.Println("--------------------------")
-	fmt.Println("|	   Note-Take CLI 	  |")
-	fmt.Println("--------------------------")
-	fmt.Print("\nType 'help' to see commands.\n\n")
 }
