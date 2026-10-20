@@ -15,50 +15,53 @@ const (
 )
 
 // RunList runs the 'list' command by either listing all files or notes from a file.
-func RunList(s *bufio.Scanner) {
-	flag := utility.GetFlag(s)
-	args := utility.GetArguements(s) // Arguements are dependent on the flag
-
-	notesDir, err := utility.CreateNotesDir()
+func RunList(input []string) {
+	flag, args := utility.ParseFlagArgs(input)
+	dir, err := utility.CreateNotesDir()
 	if err != nil {
-		fmt.Printf("Error creating notes directory: %v\n", err)
+		fmt.Printf("Unable to create notes directory: %v\n", err)
 		return
 	}
 
 	switch flag {
 	case listFileFlag:
-		listFile(args, notesDir)
+		listFile(args, dir)
 	case listAllFlag:
-		listAll(notesDir)
+		listAll(dir)
 	default:
-		fmt.Println("Error: invalid flag provided.")
+		fmt.Println("Invalid flag provided.")
 	}
 }
 
 // listFile prints all notes that are in a file.
-func listFile(args []string, notesDir string) {
-	if len(args) == 0 {
-		fmt.Println("Error: no arguements were provided.")
+func listFile(args []string, dir string) {
+	// There should be 1 arguement
+	if len(args) != 1 {
+		fmt.Println("Expected a file name.")
 		return
 	}
 
-	// First arguement should be the name that's provided
 	fileName := args[0]
-	if fileName == "" {
-		fmt.Println("Error: invalid file name provided.")
-		return
-	}
 
 	// Find and open the file by joining paths
-	file, err := os.Open(filepath.Join(notesDir, fileName))
+	// Open over OperFile since Open conventiely focuses on read only cases
+	file, err := os.Open(filepath.Join(dir, fileName))
 	if err != nil {
-		fmt.Printf("Error opening file %q: %v\n", fileName, err)
+		fmt.Printf("Unable to open '%s': %v\n", fileName, err)
 		return
 	}
 	defer file.Close()
 
-	// Scan every line of text in the text
 	scanner := bufio.NewScanner(file)
+
+	// Print if there's no notes to scan
+	if !scanner.Scan() {
+		fmt.Println("There's no notes to list.")
+		return
+	}
+
+	// Print all notes from this file
+	// Track the line number seperately since there's no iterator value in the loop
 	lineNumber := 1
 	for scanner.Scan() {
 		fmt.Printf("%d. %s\n", lineNumber, scanner.Text())
@@ -66,18 +69,23 @@ func listFile(args []string, notesDir string) {
 	}
 
 	if err := scanner.Err(); err != nil {
-		fmt.Printf("Error reading file %q: %v\n", fileName, err)
+		fmt.Printf("Error occured while reading '%s': %v\n", fileName, err)
 		return
 	}
 }
 
 // listAll prints all file names that exist in the notes folder.
-func listAll(notesDir string) {
+func listAll(dir string) {
 	// Read all files contained in the directory
-	entries, err := os.ReadDir(notesDir)
+	entries, err := os.ReadDir(dir)
 	if err != nil {
 		fmt.Printf("Unable to read notes folder: %s", err)
 		return
+	}
+
+	// Print if there's no entries
+	if len(entries) == 0 {
+		fmt.Println("There's no note files to list.")
 	}
 
 	// Print the names of all files
