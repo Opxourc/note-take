@@ -1,10 +1,8 @@
 package commands
 
 import (
-	"bufio"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 )
 
@@ -19,7 +17,7 @@ func TestNewCreatesFileAndAddsNote(t *testing.T) {
 	}
 	t.Chdir(nestedDir)
 
-	RunNew(bufio.NewScanner(strings.NewReader("-f\nsample\n")))
+	RunNew([]string{"-f", "sample"})
 
 	path := filepath.Join(projectRoot, "notes", "sample")
 	if _, err := os.Stat(path); err != nil {
@@ -29,7 +27,7 @@ func TestNewCreatesFileAndAddsNote(t *testing.T) {
 		t.Errorf("notes directory was created in nested directory, stat error = %v", err)
 	}
 
-	RunNew(bufio.NewScanner(strings.NewReader("-n\nsample\n\"hello world\"\n")))
+	RunNew([]string{"-n", "sample", "hello world"})
 
 	content, err := os.ReadFile(path)
 	if err != nil {
