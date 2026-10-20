@@ -18,36 +18,52 @@ const (
 
 func main() {
 	fmt.Println("Note-Take CLI")
-	fmt.Print("Type 'help' to see commands.\n\n")
-	scanner := bufio.NewScanner(os.Stdin) // Want to scan from a terminal
+	fmt.Println("Type 'help' to see commands.")
 
-	for {
-		var input string
-		if scanner.Scan() {
-			input = scanner.Text()
+	scanner := bufio.NewScanner(os.Stdin) // Should be a scanner for the terminal
+	exiting := false                      // For when the application needs to quit
+
+	// Keep accepting commands until the user exits
+	for !exiting {
+		fmt.Print("> ")
+
+		// Stop if Stdin closes or scanning fails
+		if !scanner.Scan() {
+			break
 		}
-		if input == "" {
+
+		input := scanner.Text()             // Input will have components (command) (flag) (args) ...
+		components := strings.Fields(input) // Break the input into those respective components
+
+		// Ignore empty or whitespace-only input
+		if len(components) < 1 {
 			continue
 		}
 
-		// Check the first token before the first space
-		com := strings.Fields(input)
-		if len(com) == 0 {
-			continue
-		}
-		first := com[0]
+		command := components[0]       // Grab the command
+		dependencies := components[1:] // Everything after are dependencies
 
-		switch first {
+		switch command {
+		case exitCommand:
+			exiting = true
+			fmt.Println("Exiting Note-Take CLI")
+
 		case helpCommand:
 			commands.RunHelp()
-		case exitCommand:
-			commands.RunExit()
+
 		case listCommand:
-			commands.RunList(scanner)
+			commands.RunList(dependencies)
+
 		case newCommand:
-			commands.RunNew(scanner)
+			commands.RunNew(dependencies)
+
 		default:
-			fmt.Printf("No command called %s", first)
+			fmt.Printf("No command called '%s'\n\n", command)
 		}
+	}
+
+	// Report any error encountered while reading Stdin
+	if err := scanner.Err(); err != nil {
+		fmt.Println("Error occured while reading inputs.")
 	}
 }
