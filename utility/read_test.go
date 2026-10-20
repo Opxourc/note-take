@@ -1,102 +1,67 @@
-package utility
+package utility_test
 
 import (
-	"bufio"
-	"strings"
+	"reflect"
 	"testing"
+
+	"github.com/Opxourc/note-take/utility"
 )
 
-type test[T any] struct {
-	name  string
-	input string
-	want  T
-}
-
-func TestGetFlag(t *testing.T) {
-	tests := []test[string]{
+func TestParseFlagArgs(t *testing.T) {
+	tests := []struct {
+		name     string
+		input    []string
+		wantFlag string
+		wantArgs []string
+	}{
 		{
-			name:  "flag after text",
-			input: "text before -name rest",
-			want:  "name",
+			name:     "flag and arguments",
+			input:    []string{"-n", "sample", "hello", "world"},
+			wantFlag: "n",
+			wantArgs: []string{"sample", "hello", "world"},
 		},
 		{
-			name:  "flag on following line",
-			input: "no flag here\n-x value",
-			want:  "x",
+			name:     "flag only",
+			input:    []string{"-f"},
+			wantFlag: "f",
+			wantArgs: []string{},
 		},
 		{
-			name:  "no flag",
-			input: "no flag here",
-			want:  "",
+			name:     "no flag",
+			input:    []string{"sample", "hello"},
+			wantFlag: "",
+			wantArgs: nil,
 		},
 		{
-			name:  "hyphen without characters",
-			input: "-",
-			want:  "",
+			name:     "empty input",
+			input:    []string{},
+			wantFlag: "",
+			wantArgs: nil,
 		},
 		{
-			name:  "hyphen followed by space",
-			input: "- next",
-			want:  "",
+			name:     "empty flag",
+			input:    []string{"-", "sample"},
+			wantFlag: "",
+			wantArgs: []string{"sample"},
 		},
 		{
-			name:  "flag at end of input",
-			input: "-name",
-			want:  "name",
-		},
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			scanner := bufio.NewScanner(strings.NewReader(test.input))
-
-			// The flag returned should be the same as the wanted flag
-			if got := GetFlag(scanner); got != test.want {
-				t.Errorf("GetFlag() = %q, want %q", got, test.want)
-			}
-		})
-	}
-}
-
-func TestGetArguements(t *testing.T) {
-	tests := []test[[]string]{
-		{
-			name:  "space separated arguments",
-			input: "first second third",
-			want:  []string{"first", "second", "third"},
-		},
-		{
-			name:  "repeated spaces",
-			input: " first  second ",
-			want:  []string{"first", "second"},
-		},
-		{
-			name:  "multiple lines",
-			input: "first second\nthird",
-			want:  []string{"first", "second", "third"},
-		},
-		{
-			name:  "empty input",
-			input: "",
-			want:  []string{},
+			name:     "only first argument is treated as flag",
+			input:    []string{"-n", "-f", "sample"},
+			wantFlag: "n",
+			wantArgs: []string{"-f", "sample"},
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
-			scanner := bufio.NewScanner(strings.NewReader(test.input))
-			got := GetArguements(scanner)
+			gotFlag, gotArgs := utility.ParseFlagArgs(test.input)
 
-			// The length returned should be the same as the wanted length
-			if len(got) != len(test.want) {
-				t.Fatalf("GetArguements() = %q, want %q", got, test.want)
+			if gotFlag != test.wantFlag {
+				t.Errorf("ParseFlagArgs() flag = %q, want %q", gotFlag, test.wantFlag)
 			}
 
-			// The values of every index of the returned should be the same as the wanted values
-			for i := range got {
-				if got[i] != test.want[i] {
-					t.Errorf("GetArguements()[%d] = %q, want %q", i, got[i], test.want[i])
-				}
+			if !reflect.DeepEqual(gotArgs, test.wantArgs) {
+				t.Errorf("ParseFlagArgs() args = %#v, want %#v", gotArgs, test.wantArgs)
 			}
 		})
 	}
