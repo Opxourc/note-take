@@ -54,23 +54,21 @@ func listFile(args []string, dir string) {
 
 	scanner := bufio.NewScanner(file)
 
-	// Print if there's no notes to scan
-	if !scanner.Scan() {
-		fmt.Println("There's no notes to list.")
-		return
-	}
-
-	// Print all notes from this file
-	// Track the line number seperately since there's no iterator value in the loop
-	lineNumber := 1
+	// Print all notes from this file, including the first line
+	// Scan once from the first line so no note is skipped; lineNumber also tells us whether the file was empty
+	lineNumber := 0
 	for scanner.Scan() {
-		fmt.Printf("%d. %s\n", lineNumber, scanner.Text())
 		lineNumber++
+		fmt.Printf("%d. %s\n", lineNumber, scanner.Text())
 	}
 
 	if err := scanner.Err(); err != nil {
 		fmt.Printf("Error occured while reading '%s': %v\n", fileName, err)
 		return
+	}
+
+	if lineNumber == 0 {
+		fmt.Println("There's no notes to list.")
 	}
 }
 
