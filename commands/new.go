@@ -72,7 +72,7 @@ func newFile(args []string, dir string) {
 }
 
 // newNote creates a new note text and appends it to an existing text file.
-func newNote(args []string, notesDir string) {
+func newNote(args []string, dir string) {
 	// There should be 2 arguements
 	if len(args) < 2 {
 		fmt.Println("Expected a file name and note string.")
@@ -80,7 +80,7 @@ func newNote(args []string, notesDir string) {
 	}
 
 	fileName := args[0]
-	path := filepath.Join(notesDir, fileName)
+	path := filepath.Join(dir, fileName)
 
 	// Check if the file exists before writing to it
 	// For simplisiy, WriteFile, which creates a file and writes to it, won't be used
