@@ -1,10 +1,8 @@
 package commands_test
 
 import (
-	"bufio"
 	"os"
 	"path/filepath"
-	"strings"
 	"testing"
 
 	"github.com/Opxourc/note-take/commands"
@@ -13,27 +11,26 @@ import (
 func TestRunList(t *testing.T) {
 	tests := []struct {
 		name  string
-		input string
+		input []string
 	}{
 		{
 			name:  "expected input for -f",
-			input: "-f test.txt",
+			input: []string{"-f", "test.txt"},
 		},
 		{
 			name:  "expected input for -a",
-			input: "-a",
+			input: []string{"-a"},
 		},
 		{
 			name:  "no flag",
-			input: "",
+			input: nil,
 		},
 	}
 
 	for _, test := range tests {
 		t.Run(test.name, func(t *testing.T) {
 			t.Chdir(t.TempDir())
-			scanner := bufio.NewScanner(strings.NewReader(test.input))
-			commands.RunList(scanner)
+			commands.RunList(test.input)
 		})
 	}
 }
@@ -49,7 +46,7 @@ func TestRunListCreatesNotesDirAtProjectRoot(t *testing.T) {
 	}
 	t.Chdir(nestedDir)
 
-	commands.RunList(bufio.NewScanner(strings.NewReader("-a")))
+	commands.RunList([]string{"-a"})
 
 	if info, err := os.Stat(filepath.Join(projectRoot, "notes")); err != nil {
 		t.Fatalf("notes directory was not created at project root: %v", err)
