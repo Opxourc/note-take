@@ -10,10 +10,11 @@ import (
 )
 
 const (
-	helpCommand = "help"
-	exitCommand = "exit"
-	listCommand = "list"
-	newCommand  = "new"
+	deleteCommand = "delete"
+	helpCommand   = "help"
+	exitCommand   = "exit"
+	listCommand   = "list"
+	newCommand    = "new"
 )
 
 func main() {
@@ -56,6 +57,9 @@ func main() {
 
 		case newCommand:
 			commands.RunNew(dependencies)
+
+		case deleteCommand:
+			commands.RunDelete(dependencies)
 
 		default:
 			fmt.Printf("No command called '%s'\n\n", command)
