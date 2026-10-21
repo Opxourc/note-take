@@ -19,6 +19,8 @@ new -f <file>                 Create a note file
 new -n <file> <note>          Add a note to an existing file
 list -a                       List all note files
 list -f <file>                Show all notes in a file
+destroy -f <file>             Removes a note file
+destroy -n <file> <index>     Removes a note index from an existing file
 help                          Show command help
 exit                          Quit
 ```
